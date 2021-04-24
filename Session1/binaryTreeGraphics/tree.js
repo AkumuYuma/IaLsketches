@@ -11,7 +11,8 @@ class Tree {
 
     if (this.root == null) {
       // Se l'albero è vuoto aggiungo il primo nodo
-      this.root = valueNode
+      this.root = new Node(value, width/2, 100);
+      this.root.show();
     } else {
       // Altrimenti aggiungo un nodo in base al valore
       this.root.addNode(valueNode);

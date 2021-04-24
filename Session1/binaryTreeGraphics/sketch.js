@@ -2,7 +2,8 @@
 let t;
 
 function setup() {
-  noCanvas();
+  createCanvas(600, 600);
+  background(0);
   t = new Tree();
 
   for (let i = 0; i < 10; i++) {
