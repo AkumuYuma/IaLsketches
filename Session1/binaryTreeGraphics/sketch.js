@@ -9,6 +9,5 @@ function setup() {
   for (let i = 0; i < 10; i++) {
     t.addElement(floor(random(0, 100)));
   }
-
-  t.traverse();
+  t.show();
 }

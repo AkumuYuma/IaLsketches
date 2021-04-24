@@ -2,6 +2,7 @@ class Tree {
   // Costruisco l'albero con un riferimento alla radice
   constructor() {
     this.root = null;
+    this.maxDepth = 0;
   }
 
   // Aggiungo un elemento all'albero
@@ -11,12 +12,17 @@ class Tree {
 
     if (this.root == null) {
       // Se l'albero è vuoto aggiungo il primo nodo
-      this.root = new Node(value, width/2, 100);
-      this.root.show();
+      this.root = new Node(value, width/2, 20);
     } else {
       // Altrimenti aggiungo un nodo in base al valore
-      this.root.addNode(valueNode);
+      let currentDepth = this.root.addNode(valueNode);
+      // Aggiorno la profondità massima dell'albero
+      if (currentDepth > this.maxDepth) {
+        this.maxDepth = currentDepth;
+      }
     }
+
+
   }
 
   traverse() {
@@ -25,6 +31,10 @@ class Tree {
 
   search(value) {
     return this.root.search(value);
+  }
+
+  show() {
+    this.root.render(this.maxDepth);
   }
 
 }

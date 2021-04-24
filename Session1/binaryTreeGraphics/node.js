@@ -6,42 +6,38 @@ class Node {
     this.right = null;
 
     // Valori per la visualizzazione
-    this.pos = createVector(x, y);
-
+    this.x = x;
+    this.y = y;
+    this.r = 20;
+    this.depth = 0;
   }
 
-  static depth = 1;
-
   // Funzione per aggiungere un nodo a destra o a sinistra a seconda del valore
+  // Restituisce il valore di profondità alla quale il nodo viene inserito
   addNode(valueNode) {
      if (valueNode.val < this.val) {
-       // Se il valore da aggiungere è più piccolo, lo aggiungo a sinistra
+       // Scendo al livello successivo e incremento la profondità del nodo da inserire
+       valueNode.depth++;
+       // Se il valore da aggiungere è più piccolo del valore del nodo corrente, lo aggiungo a sinistra
        if (this.left == null) {
          // Se il figlio sinistro è vuoto aggiungo direttamente il nodo
          this.left = valueNode;
-         // Disegno il nodo
-         this.left.pos.x = this.pos.x - 30/(0.2 * Node.depth);
-         this.left.pos.y = this.pos.y + 60;
-         this.left.show();
-         line(this.pos.x, this.pos.y, this.left.pos.x, this.left.pos.y);
+         // Ritorno la profondità
+         return this.left.depth;
        } else {
          // Altrimenti rifaccio il procedimento con il figlio di sinistra
-         Node.depth++;
-         this.left.addNode(valueNode);
+         return this.left.addNode(valueNode);
        }
 
      } else if (valueNode.val > this.val) {
-       // Se il valore è più grande, lo inserisco a destra
+       // Scendo al livello successivo e incremento la profondità del nodo da inserire
+       valueNode.depth++;
+       // Se il valore è più grande del valore del nodo corrente, lo inserisco a destra
        if (this.right == null) {
          this.right = valueNode;
-         // Disegno il nodo
-         this.right.pos.x = this.pos.x + 30/(0.2 * Node.depth);
-         this.right.pos.y = this.pos.y + 60;
-         this.right.show();
-         line(this.pos.x , this.pos.y , this.right.pos.x , this.right.pos.y );
+         return this.right.depth;
        } else {
-         Node.depth++
-         this.right.addNode(valueNode);
+         return this.right.addNode(valueNode);
        }
 
      }
@@ -72,15 +68,27 @@ class Node {
     }
   }
 
-  show() {
-    // Funzione per la visualizzazione del nodo
+  // Funzione per disegnare un nodo e tutti i sottonodi attaccati, è necessario conoscere la profondità massima per gestire le distanze di disegno
+  render(maxDepth) {
     noFill();
     stroke(255);
-    // Faccio un cerchio con il valore dentro
-    ellipse(this.pos.x, this.pos.y, 40);
-    // Inserisco il valore del nodo all'interno
+    ellipse(this.x, this.y, this.r * 2);
     textAlign(CENTER);
-    text(this.val, this.pos.x, this.pos.y);
+    text(this.val, this.x, this.y);
+
+    if (this.left != null) {
+      this.left.x = this.x - (width/2**maxDepth);
+      this.left.y = this.y + (60);
+      line(this.x, this.y, this.left.x, this.left.y);
+      this.left.render(maxDepth);
+    }
+    if (this.right != null) {
+      this.right.x = this.x + (width/2**maxDepth);
+      this.right.y = this.y + (60);
+      line(this.x, this.y, this.right.x, this.right.y);
+      this.right.render(maxDepth);
+    }
+
   }
 
 }
