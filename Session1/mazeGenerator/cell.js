@@ -7,6 +7,13 @@ class Cell {
     this.walls = [true, true, true, true] // Top, right, bottom, left walls
     // Visitata
     this.visited = false;
+
+    // Indica se la cella è la cella corrente
+    this.currentCell = false;
+  }
+
+  setCurrent(value) {
+    this.currentCell = value;
   }
 
   visit() {
@@ -30,11 +37,17 @@ class Cell {
       fill(136, 193, 215);
       rect(x, y, scale, scale);
     }
+    if (this.currentCell) {
+      noStroke();
+      fill(255, 123, 44);
+      rect(x, y, scale, scale);
+    }
   }
 
   vicini() {
     // Resituisce un array con i vicini disponibili
     let vicini = [];
+    // vicini[]
 
     try {
       // Cerco di prendere il vicino di sopra
