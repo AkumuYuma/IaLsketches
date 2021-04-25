@@ -7,13 +7,13 @@ class Cell {
     this.walls = [true, true, true, true] // Top, right, bottom, left walls
     // Visitata
     this.visited = false;
-
     // Indica se la cella è la cella corrente
-    this.currentCell = false;
+    this.evidenziata = false;
   }
 
-  setCurrent(value) {
-    this.currentCell = value;
+  evidenzia(value) {
+    // Setta evidenziatore
+    this.evidenziata = value;
   }
 
   visit() {
@@ -26,8 +26,10 @@ class Cell {
     noFill();
     stroke(255);
     strokeWeight(2);
+    // Scala i valori di posizione per avere le coordinate
     let x = this.x * scale;
     let y = this.y * scale;
+    // Disegna le linee dove la cella ha ancora i muri
     if (this.walls[0]) line(x, y, x + scale, y);
     if (this.walls[1]) line(x + scale, y, x + scale, y + scale);
     if (this.walls[2]) line(x + scale, y + scale, x, y + scale);
@@ -38,7 +40,8 @@ class Cell {
       fill(136, 193, 215);
       rect(x, y, scale, scale);
     }
-    if (this.currentCell) {
+    // Se la cella è evidenziata la disegno con un colore diverso
+    if (this.evidenziata) {
       noStroke();
       fill(255, 123, 44);
       rect(x, y, scale, scale);
@@ -85,6 +88,8 @@ class Cell {
     // Se restituisce un vicino, elimina i muri tra questa cella e il vicino ottenuto
     let vicini = this.vicini();
     if (Object.values(vicini).length > 0) {
+      // Se l'array di vicini non è vuoto
+      // Prendo una delle celle a caso
       let vicinoOttenuto = Object.values(vicini)[floor(random(0, Object.values(vicini).length))];
       // Devo rimuovere i muri che separano this da vicinoOttenuto
       if (vicini["top"] == vicinoOttenuto) {
@@ -105,6 +110,7 @@ class Cell {
         this.walls[3] = false;
         vicini["left"].walls[1] = false;
       }
+      // Restituisco la della ottenuta dalla scelta
       return vicinoOttenuto;
     }
   }

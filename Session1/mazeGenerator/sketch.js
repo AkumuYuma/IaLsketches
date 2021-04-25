@@ -16,7 +16,7 @@ function setup() {
   // Inizio dalla prima cella in alto a destra
   let start = griglia[0][0];
   // Imposto la prima cella come corrente (per visualizzazione)
-  start.setCurrent(true);
+  start.evidenzia(true);
   // Contrassegno la prima cella come visitata
   start.visit();
   stack.push(start);
@@ -30,9 +30,9 @@ function draw() {
     currentCell = stack.pop();
 
     // Disegno la griglia con la cella corrente evidenziata
-    currentCell.setCurrent(true);
+    currentCell.evidenzia(true);
     showGrid();
-    currentCell.setCurrent(false);
+    currentCell.evidenzia(false);
     // Rimuovo l'evidenza alla cella corrente
 
     // Prendo la prossima cella
