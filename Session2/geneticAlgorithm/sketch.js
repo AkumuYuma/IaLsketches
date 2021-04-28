@@ -8,14 +8,12 @@ let generazione, migliore;
 function setup() {
   generazione = createP();
   migliore = createP();
-  pop = new Popolazione(1000, target, 0.01);
-
-
+  pop = new Popolazione(500, target, 0.01);
 }
 
 
-
 function draw() {
+
   pop.valutaFit();
   pop.makePool();
   pop.valutaGenerazione();
@@ -25,4 +23,5 @@ function draw() {
   migliore.html(pop.best);
   generazione.html(pop.generazione);
   pop.nuovaGenerazione();
+
 }
