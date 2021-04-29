@@ -1,20 +1,16 @@
-#include <string> 
-#include <iostream>
-#include <cstdlib>
-#include "popolazione.h"
+#include "dichiarazioni.h"
+#include "individuo.cpp" 
+#include "popolazione.cpp" 
+#include "utilities.cpp" 
 
 using namespace std; 
 
-
 const string target{"To be or not to be this is the question"};
-
-
-
 
 int main() {
   srand(static_cast<unsigned>(time(0)));
    
-  Popolazione pop(target, 1000, 0.01); 
+  genAlg::Popolazione pop(target, 1000, 0.01); 
   
   while (!pop.trovato) {
     pop.nuovaGenerazione(); 
