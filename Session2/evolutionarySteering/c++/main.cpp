@@ -1,5 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
@@ -8,51 +9,54 @@
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/Window/WindowStyle.hpp>
 #include <iostream> 
-#include "veichle.cpp"
 #include <memory>
+#include <string>
 #include <vector>
+#include <chrono>
 
-std::unique_ptr<sf::CircleShape> ciboRandom(sf::RenderWindow &finestra) {
-  // Restituisce un puntatore unico a un cibo in una posizione random dello schermo
-  std::unique_ptr<sf::CircleShape> cibo{new sf::CircleShape{2}}; 
-  cibo->setPosition(randomTools::randomFloat(0, finestra.getSize().x), randomTools::randomFloat(0, finestra.getSize().y));
-  cibo->setFillColor(sf::Color::Green);
-  return cibo;
-}
+#include "veichle.cpp"
 
 int main() {
+  // ---------------------------------- Operazioni preparatorie al main loop -------------------------------------
+
   sf::RenderWindow finestra(sf::VideoMode(900, 900), "Evolution", sf::Style::Close | sf::Style::Titlebar); 
   
-  // Array di veicoli 
+  // Creo array di veicoli 
   std::vector<std::unique_ptr<Veichle>> veicoli; 
-  for (int i = 0; i < 30; ++i) {
-    // Creo un unique_ptr, che punta a un oggetto veicolo. Essendo un puntatore intelligente quando elimino il riferimento, viene liberata la memoria
+  for (int i = 0; i < 100; ++i) {
     veicoli.push_back(std::unique_ptr<Veichle>{new Veichle(300, 300)}); 
   }
 
 
-  // Array di cibo 
+  // Creo array di cibo e veleno 
   std::vector<std::unique_ptr<sf::CircleShape>> cibi;
-  
-  for (int i = 0; i < 50; ++i) {
-    // Inserisco cibo in giro come cerchi di raggio 2
-    cibi.push_back(ciboRandom(finestra));
+  for (int i = 0; i < 300; ++i) {
+    cibi.push_back(creaCibo(finestra, true));
   } 
-  
-  // Array di veleno  
   std::vector<std::unique_ptr<sf::CircleShape>> veleno;
-  
-  for (int i = 0; i < 20; ++i) {
-    // Inserisco il veleno in giro come cerchi di raggio 2
-    veleno.push_back(std::unique_ptr<sf::CircleShape>{new sf::CircleShape{2}});
-    veleno[i]->setPosition(randomTools::randomFloat(0, finestra.getSize().x), randomTools::randomFloat(0, finestra.getSize().y));
-    veleno[i]->setFillColor(sf::Color::Red);
+  for (int i = 0; i < 300; ++i) {
+    veleno.push_back(creaCibo(finestra, false));
   } 
   
-  // Main loop
-  while (finestra.isOpen()) {
-    finestra.setFramerateLimit(60);
+  // Inizio a misurare il tempo 
+  std::chrono::steady_clock::time_point timeStart = std::chrono::steady_clock::now();
+  // Variabile bool per fine simulazione
+  bool finito{false}; 
+  std::string tempoFinale = ""; 
+  // Conto i loop
+  int loopCounter{0}; 
 
+
+
+  // ------------------------------------------------- Main loop ------------------------------------------------
+  while (finestra.isOpen()) {
+    
+    // Misuro il tempo a ogni loop
+    std::chrono::steady_clock::time_point timeEnd = std::chrono::steady_clock::now();
+    std::string tempo = std::to_string(std::chrono::duration_cast<std::chrono::seconds>(timeEnd - timeStart).count());
+   
+
+    finestra.setFramerateLimit(60);
     // Gestione eventi
     sf::Event ev; 
     while (finestra.pollEvent(ev)) {
@@ -70,41 +74,82 @@ int main() {
       }
     }
     
-    // Bassa probabilità di generare cibo in posizione random sullo schermo 
+    // Bassa probabilità di generare cibo o veleno in posizione random sullo schermo 
+    if (randomTools::randomFloat() < 0.08) {
+      cibi.push_back(creaCibo(finestra, true)); 
+    }  
     if (randomTools::randomFloat() < 0.01) {
-      cibi.push_back(ciboRandom(finestra)); 
+      veleno.push_back(creaCibo(finestra, false)); 
     }
+    
 
+    // --------------------------------------------- Operazioni di disegno -------------------------------------
+    
     finestra.clear(); 
     
-    // Loop sui veicoli 
-    // Devo usare gli iteratori per eliminare un elemento della lista 
+    // --------------------------------------------- Loop sui veicoli -------------------------------------------
+    
     for (auto i = veicoli.begin() ; i != veicoli.end(); ++i) {
       // l'oggetto *i rappresenta veicoli[i]
       (*i)->edges(finestra);
       (*i)->vivi(cibi, veleno);
       (*i)->update();
       (*i)->show(finestra); 
-      // Se il vettore di cibi non è vuoto 
+       
+      // Probabilià di clonare
+      if (randomTools::randomFloat() < 0.003) {
+	i = veicoli.insert(i, (*i)->clona()); 
+	i++;
+      }
 
       if ((*i)->dead()) {
 	// Se l'elemento i-simo è morto, lo elimino.
+	// Inoltre creo un cibo nella posizione 
        	// i-- restituisce i a erase e poi decrementa. Così elimino l'elemento ma non salto niente
-	// Questo è l'algoritmo per togliere un elemento da una lista eliminandolo
-	veicoli.erase(i--);
+	cibi.push_back(creaCibo(finestra, true, (*i)->getposition())); 
+	veicoli.erase(i--); 
       }
     }
+   
+    // ---------------------------------------------- Disegno info, veleni e cibi --------------------------------
 
-    // Loop sui cibi
+    // Definisco il font per testo a schermo 
+    sf::Font font; 
+    if (!font.loadFromFile("font/arial.ttf")) {
+      throw("Errore nel caricare il font"); 
+    }
+    
+    // Scrivo le info sullo schermo
+    finestra.draw(creaTesto(font, "Alive: " + std::to_string(veicoli.size()), 24)); 
+    finestra.draw(creaTesto(font, "Elapsed time: " + tempo + "s", 15, sf::Vector2f{0, 30})); 
+    finestra.draw(creaTesto(font, "Loops elapsed: " + std::to_string(loopCounter), 15, sf::Vector2f{0, 50}));
+    finestra.draw(creaTesto(font,"Food: " + std::to_string(cibi.size()), 15, sf::Vector2f{0, 70})); 
+    finestra.draw(creaTesto(font,"Poison: " + std::to_string(veleno.size()), 15, sf::Vector2f{0, 90})); 
+    finestra.draw(creaTesto(font, "D to show debug info", 15, sf::Vector2f{static_cast<float>(finestra.getSize().x - 200), static_cast<float>(finestra.getSize().y - 30)}));
+   
+     
+    // Se la simulazione è finita scrivo a schermo il tempo di sopravvivenza della specie 
+    if (veicoli.size() == 0 && !finito) {
+      tempoFinale = tempo;
+      finito = true; 
+    }
+    if (tempoFinale != "") {
+      finestra.draw(creaTesto(font, "They lived for: " + tempoFinale + "s", 15, sf::Vector2f{0, 110})); 
+    }
+
+    // Disegno i cibi
     for (auto &cibo : cibi) {
       finestra.draw(*cibo);
     }
     
-    // Loop sui veleni
+    // Disegno i veleni 
     for (auto &vel : veleno) {
       finestra.draw(*vel); 
     }
 
+   
     finestra.display();
+   
+    ++loopCounter; 
   }
 }

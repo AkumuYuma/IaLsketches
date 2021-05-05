@@ -1,35 +1,18 @@
-#include <SFML/Graphics/CircleShape.hpp>
-#include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/ConvexShape.hpp>
-#include <SFML/Graphics/RectangleShape.hpp>
-#include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/View.hpp>
-#include <SFML/System/Vector2.hpp>
-#include <vector>
-#include <memory>
-#include "/home/emanuele/informatica/c++/librerie/randomTools.cpp"
-// La libreria dei vettori include la libreria matematica e le costanti matematiche
-#include "/home/emanuele/informatica/c++/librerie/sfml/vectorTools.cpp"
- 
+#include "librerie/randomTools.cpp"
+#include "librerie/sfml/vectorTools.cpp"
+#include "librerie/utilities.cpp"
+
 using namespace vectorTools;
 
-float radToDeg(float radians) {
-  // ritorna l'angolo trasformato in gradi 
-  return (radians * 180) / M_PI; 
-}
 
 
 // Classe veichle 
 class Veichle {
   private:
-    // Angolo rispetto a x a cui punta il veicolo 
     float angle{0.};
-    // Figura che rappresenta il veicolo
     sf::ConvexShape triangolo; 
-    // velocità
     sf::Vector2f vel{randomTools::randomFloat(-5, 5), randomTools::randomFloat(-5, 5)}; 
     float velocitalimite{5};
-    // Accelerazione
     sf::Vector2f acc{0, 0}; 
     // Dimensione
     float raggio{7.}; 
@@ -39,14 +22,14 @@ class Veichle {
     // dna[3] rappresenta la percezione al cibo
     // dna[4] rappresenta la percezione al veleno 
     std::vector<float> dna{0, 0, 0, 0};
-    // Il veicolo può reagire solo ad oggetti all'interno di un cerchio di raggio "visuale" 
-    float visuale{100}; 
+    // Il veicolo può reagire solo ad oggetti all'interno di un cerchio di raggio "" 
     // Vita
     float health{1};
 
-  public: 
+  public:
     static bool debug;
-    Veichle(float x, float y); 
+  public: 
+    Veichle(float x, float y, std::vector<float> newDna); 
     void show(sf::RenderWindow &finestra);
     void update(); 
     void applyForce(sf::Vector2f force);
@@ -55,7 +38,7 @@ class Veichle {
     sf::Vector2f cercaVicino(std::vector<std::unique_ptr<sf::CircleShape>> & lista, float valoreNutrizionale, float percezione); 
     void vivi(std::vector<std::unique_ptr<sf::CircleShape>> & cibo, std::vector<std::unique_ptr<sf::CircleShape>> & veleno);
     void edges(sf::RenderWindow &finestra);
-    // Metodi di debug
+    std::unique_ptr<Veichle> clona();
     sf::Vector2f getorigin(); 
     sf::Vector2f getposition(); 
     sf::Vector2f getvelocity();
@@ -66,15 +49,22 @@ class Veichle {
 // Variabile di debug
 bool Veichle::debug{false}; 
 
-Veichle::Veichle(float x, float y) {
+Veichle::Veichle(float x, float y, std::vector<float> newDna = std::vector<float>{}) {
   // Costruttore. 
   // :Param: x,y -> Posizione iniziale
+  // :parama: newDna -> Dna con cui creare il veicolo, opzionale. 
   
-  // Inizializzo il dna con pesi a caso   
-  dna[0] = randomTools::randomFloat(-5, 5);
-  dna[1] = randomTools::randomFloat(-5, 5); 
-  dna[2] = randomTools::randomFloat(1, 100); 
-  dna[3] = randomTools::randomFloat(1, 100); 
+  // Se il parametro dna non viene passato, lo inizializzo con valori random
+  if (newDna.size() > 0) {
+    dna = newDna; 
+  } else {
+    // Inizializzo il dna con pesi a caso   
+    dna[0] = randomTools::randomFloat(-5, 5);
+    dna[1] = randomTools::randomFloat(-5, 5); 
+    dna[2] = randomTools::randomFloat(1, 100); 
+    dna[3] = randomTools::randomFloat(1, 100); 
+  } 
+
   // La figura deve essere un triangolo quindi setto 3 punti 
   triangolo.setPointCount(3); 
   // Setto l'origine al centro del triangolo 
@@ -94,7 +84,7 @@ void Veichle::show(sf::RenderWindow &finestra) {
     // DEBUG
     // Disegno intorno al triangolo un cerchio di raggio pari alla visuale 
     // Disegno una linea di lunghezza proporzionale all'affinità al cibo o al veleno
-    sf::RectangleShape rectCibo{sf::Vector2f(dna[0] * 10, 1)}; 
+    sf::RectangleShape rectCibo{sf::Vector2f(dna[0] * 10, 2)}; 
     rectCibo.setPosition(triangolo.getPosition());
     rectCibo.setFillColor(sf::Color::Green); 
     finestra.draw(rectCibo); 
@@ -129,10 +119,10 @@ void Veichle::update() {
   
 
   // Riduco la vita a ogni ciclo
-  health -= 0.001; 
+  health -= 0.01; 
   // I veicoli scompaiono al calare della vita
-  triangolo.setFillColor(sf::Color(255, 255, 255, 255 * health));
-  triangolo.setOutlineColor(sf::Color(255, 255, 255, 255 * health));
+  triangolo.setFillColor(sf::Color((1-health) * 255, health * 255, 0));
+  // triangolo.setOutlineColor(sf::Color(255, 255, 255, 255 * health));
   // Setto l'origine delle rotazioni  
   triangolo.setOrigin(0, 0); 
   // Ruoto nella direzionde di movimento
@@ -191,28 +181,29 @@ sf::Vector2f Veichle::cercaVicino(std::vector<std::unique_ptr<sf::CircleShape>> 
     // Cerco il più vicino nella visuale del veicolo 
     float distanzaMinima = 1e4; 
     auto closest = lista.begin(); 
+
+    // Itero sulla lista
     for (auto it = lista.begin(); it != lista.end(); ++it) {
       float distanza = dist(triangolo.getPosition(), (*it)->getPosition());
-      if (distanza < distanzaMinima) {
-	// Se l'oggetto più vicino non è nella visuale non aggiorno la distanza minima
+ 
+      if (distanza < velocitalimite) {
+	// Se mi trovo sull'oggetto, lo mangio e basta
+        lista.erase(it--); 
+	health += valoreNutrizionale; 
+      } else if (distanza < distanzaMinima) {
+	// Altrimenti aggiorno la distanza minima
 	closest = it; 
 	distanzaMinima = distanza;
       }
     }
 
-    // Se sono dentro la visuale, mangio il cibo oppure creo l'attrazione 
+    // Se sono dentro la visuale creo l'attrazione 
     if (distanzaMinima < percezione) {
       sf::Vector2f posizioneVicino = (*closest)->getPosition();
-      // Mangio l'oggetto se sono abbastanza vicino e lo rimuovo dalla lista
-      if (dist(triangolo.getPosition(), posizioneVicino) < 5) {
-	lista.erase(closest); 
-	// Aggiungo il valore nutrizionale alla vita
-	health += valoreNutrizionale; 
-      } else {
-	// Restituisco la forza di attrazione
-	return seek(posizioneVicino); 
-      }
+      // Restituisco la forza di attrazione
+      return seek(posizioneVicino); 
     }
+
   }
   
   // Se la lista in input è vuota, oppure il più vicino è fuori dalla visuale restituisco il vettore nullo 
@@ -224,8 +215,8 @@ void Veichle::vivi(std::vector<std::unique_ptr<sf::CircleShape>> & cibo, std::ve
   // :param: cibo -> lista di cibo
   // :param: veleno -> lista di veleno 
   
-  sf::Vector2f forzaBuona = cercaVicino(cibo, 0.2, dna[2]);  
-  sf::Vector2f forzaMale = cercaVicino(veleno, -0.5, dna[3]); 
+  sf::Vector2f forzaBuona = cercaVicino(cibo, 0.5, dna[2]);  
+  sf::Vector2f forzaMale = cercaVicino(veleno, -0.75, dna[3]); 
   multVector(forzaBuona, dna[0]); 
   multVector(forzaMale, dna[1]); 
   applyForce(forzaBuona); 
@@ -241,21 +232,37 @@ void Veichle::edges(sf::RenderWindow &finestra) {
   if (pos.x < margine || pos.x > sizeFinestra.x - margine || pos.y < margine || pos.y > sizeFinestra.y - margine) {
     applyForce(seek(sf::Vector2f(sizeFinestra.x/2, sizeFinestra.y/2))); 
   }
+}
 
+std::unique_ptr<Veichle> Veichle::clona() {
+  // :return: puntatore unico ad un nuovo veicolo con possibili mutazioni 
+  std::vector<float> nuovoDna = dna; 
+  for (auto &gene : nuovoDna) {
+    // Vario al massimo di un 10% ogni gene 
+    gene += randomTools::randomFloat(- gene/10, gene/10);
+  }
+  std::unique_ptr<Veichle> nuovoVeicolo{new Veichle{triangolo.getPosition().x, triangolo.getPosition().y, nuovoDna}}; 
+  return nuovoVeicolo; 
 }
 
 // Metodi di debug
 sf::Vector2f Veichle::getorigin() {
+  // :return: origine delle trasformazioni 
   return triangolo.getOrigin();
-} sf::Vector2f Veichle::getposition() {
+} 
+
+sf::Vector2f Veichle::getposition() {
+  // :return: posizione del triangolo 
   return triangolo.getPosition();
 }
 
 sf::Vector2f Veichle::getvelocity() {
+  // :return: velocità del veicolo
   return vel;
 }
 
 float Veichle::getrotation() {
+  // :return: angolo di rotazione attuale
   return triangolo.getRotation();
 }
 
